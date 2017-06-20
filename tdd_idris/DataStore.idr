@@ -1,32 +1,48 @@
-module Main
+module DataStore
 
 import Data.Vect
 
-data Schema
-
 infixr 5 .+.
 
+public export
 data Schema = SString | SInt | SChar | (.+.) Schema Schema
 
+public export
 SchemaType : Schema -> Type
 SchemaType SString = String
 SchemaType SInt = Int
 SchemaType SChar = Char
 SchemaType (x .+. y) = (SchemaType x, SchemaType y)
 
-record DataStore where
+export
+record DataStore (schema : Schema) where
     constructor MkData
-    schema : Schema
     size : Nat
     items : Vect size (SchemaType schema)
 
-addToStore : (store : DataStore) -> SchemaType (schema store) -> DataStore
-addToStore (MkData schema size store) newitem = MkData schema _ (addToData store)
-    where
-        addToData : Vect oldsize (SchemaType schema) -> Vect (S oldsize) (SchemaType schema)
-        addToData [] = [newitem]
-        addToData (item :: items) = item :: addToData items
+export
+empty : DataStore schema
+empty = MkData 0 []
 
+export
+addToStore : (value : SchemaType schema) -> (store : DataStore schema) -> DataStore schema
+addToStore value (MkData _ items) = MkData _ (value :: items)
+
+public export
+data StoreView : DataStore schema -> Type where
+     SNil : StoreView empty
+     SAdd : (rec : StoreView store) -> StoreView (addToStore value store)
+
+storeViewHelp : (items : Vect size (SchemaType schema)) ->
+                StoreView (MkData size items)
+storeViewHelp [] = SNil
+storeViewHelp (val :: xs) = SAdd (storeViewHelp xs)
+
+export
+storeView : (store : DataStore schema) -> StoreView store
+storeView (MkData size items) = storeViewHelp items
+
+{-
 data Command : Schema -> Type where
     SetSchema : (newSchema : Schema) -> Command schema
     Add : SchemaType schema -> Command schema
@@ -126,3 +142,4 @@ processInput store input
 
 main : IO ()
 main = replWith (MkData SString _ []) "Command: " processInput
+-}
