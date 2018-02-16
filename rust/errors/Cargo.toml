@@ -1,0 +1,9 @@
+[package]
+name = "errors"
+version = "0.1.0"
+authors = ["Vlad Riscutia <vladris@microsoft.com>"]
+
+[dependencies]
+
+[profile.release]
+panic = 'abort'
