@@ -8,7 +8,7 @@ class AddColorForm extends Component {
     submit(e) {
         const { _title, _color } = this.refs
         e.preventDefault();
-        alert(`New Color: ${_title.value} ${_color.value}`)
+        this.props.onNewColor(_title.value, _color.value);
         _title.value = '';
         _color.value = '#000000';
         _title.focus();
