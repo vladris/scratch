@@ -5,6 +5,17 @@ fn prints_and_returns_10(a: i32) -> i32 {
 }
 */
 
+//! # Tests
+
+/// Adds one to the number given.
+///
+/// # Examples
+///
+/// ```
+/// let five = 5;
+///
+/// assert_eq!(7, tests::add_two(5));
+/// ```
 pub fn add_two(a: i32) -> i32 {
     a + 2
 }
