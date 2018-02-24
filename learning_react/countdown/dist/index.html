@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>React App</title>
+        <style>
+            .star {
+                cursor: pointer;
+                height: 25px;
+                width: 25px;
+                margin: 2px;
+                float: left;
+                background-color: grey;
+                clip-path: polygon(
+                50% 0%,
+                63% 38%,
+                100% 38%,
+                69% 59%,
+                82% 100%,
+                50% 75%,
+                18% 100%,
+                31% 59%,
+                0% 38%,
+                37% 38%
+                );
+            }
+            .star.selected {
+                background-color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="react-container"></div>
+        <script src="./assets/bundle.js"></script>
+    </body>
+</html>
