@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Clock</title>
+    </head>
+    <body>
+        <!-- Target Container -->
+        <div id="react-container"></div>
+        
+        <!-- React Library & React DOM-->
+        <script src="https://fb.me/react-15.1.0.js"></script>
+        <script src="https://fb.me/react-dom-15.1.0.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.29/browser.js"></script>
+        
+        <script>
+            function getClockTime() {
+                // Get the Current Time
+                var date = new Date();
+                var time = "";
+
+                // Serialize clock time
+                var time = {
+                    hours: date.getHours(),
+                    minutes: date.getMinutes(),
+                    seconds: date.getSeconds(),
+                    ampm: "AM"
+                }
+
+                // Convert to civilian time
+                if (time.hours == 12) {
+                    time.ampm = "PM";  
+                } else if (time.hours > 12) {
+                    time.ampm = "PM";
+                    time.hours -= 12;
+                }
+
+                // Prepend a 0 on the hours to make double digits
+                if (time.hours < 10) {
+                    time.hours = "0" + time.hours;
+                } 
+
+                // prepend a 0 on the minutes to make double digits
+                if (time.minutes < 10) {
+                    time.minutes = "0" + time.minutes;
+                }
+
+                // prepend a 0 on the seconds to make double digits
+                if (time.seconds < 10) {
+                    time.seconds = "0" + time.seconds;
+                }
+
+                return {
+                    hours: time.hours,
+                    minutes: time.minutes,
+                    seconds: time.seconds,
+                    timeOfDay: time.ampm
+                }
+            }
+        </script>
+
+        <script type="text/babel">
+            class Clock extends React.Component {
+                constructor() {
+                    super()
+                    this.state = getClockTime()
+                }
+
+                componentDidMount() {
+                    console.log("Starting Clock")
+                    this.ticking = setInterval(() => this.setState(getClockTime()), 1000)
+                }
+
+                componentWillUnmount() {
+                    clearInterval(this.ticking)
+                    console.log("Stopping Clock")
+                }
+
+                render() {
+                    return (
+                        <div className="clock">
+                            <span>{this.state.hours}</span>
+                            <span>:</span>
+                            <span>{this.state.minutes}</span>
+                            <span>:</span>
+                            <span>{this.state.seconds}</span>
+                            <span>{this.state.timeOfDay}</span>
+                            <button onClick={this.props.onClose}>x</button>
+                        </div>
+                    )
+                }
+            }
+
+            ReactDOM.render(
+                <Clock onClose={() => unmountComponentAtNode(target)}/>,
+                document.getElementById('react-container')
+            )
+        </script>
+    </body>
+r</html>
