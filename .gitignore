@@ -19,3 +19,6 @@ Cargo.lock
 
 # Node modules
 **/node_modules/*
+
+# F# runtime
+FSharp.Core.dll
