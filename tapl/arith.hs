@@ -1,5 +1,3 @@
-type Info = String
-
 data Term =
     TmTrue -- True
   | TmFalse -- False
