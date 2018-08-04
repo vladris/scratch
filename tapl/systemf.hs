@@ -7,6 +7,17 @@ data Type =
 
 data Binding = NameBind | VarBind Type | TyVarBind
 
+type Context = [(String, Binding)]
+
+addBinding :: Context -> String -> Binding -> Context
+addBinding ctx s b = (s, b):ctx
+
+getTypeFromContext :: Context -> Int -> Type
+getTypeFromContext ctx i =
+    case ctx !! i of
+        (_, VarBind ty) -> ty
+        _ -> error "Wrong kind of binding for variable"
+
 {-
 typeShiftAbove :: Int -> Int -> Type -> Type
 typeShiftAbove d c tyT = walk c tyT
@@ -29,7 +40,12 @@ tyMap onVar c tyT = walk c tyT
 
 typeShiftAbove :: Int -> Int -> Type -> Type
 typeShiftAbove d c tyT = tyMap
-    (\c x n -> if x >= c then TyVar (x + d) (n + d) else TyVar x (n + d)) c tyT
+    (\c x n -> if x >= c then 
+                   if x + d < 0 then error "Scoping error"
+                   else TyVar (x + d) (n + d)
+               else
+                   TyVar x (n + d))
+    c tyT
 
 typeShift :: Int -> Type -> Type
 typeShift d tyT = typeShiftAbove d 0 tyT
@@ -85,6 +101,71 @@ termSubstTop s t = termShift (-1) (termSubst 0 (termShift 1 s) t)
 
 tytermSubstTop :: Type -> Term -> Term
 tytermSubstTop tyS t = termShift (-1) (tytermSubst (typeShift 1 tyS) 0 t)
+
+isVal :: Context -> Term -> Bool
+isVal _ _ = True -- not implemeneted, should return True if term is a value
+
+eval1 :: Context -> Term -> Term
+eval1 ctx (TmApp (TmAbs x _ t12) v2@(TmAbs _ _ _)) = termSubstTop v2 t12
+eval1 ctx (TmApp v1@(TmAbs _ _ _) t2) = let t2' = eval1 ctx t2 in TmApp v1 t2'
+eval1 ctx (TmApp t1 t2) = let t1' = eval1 ctx t1 in TmApp t1' t2
+eval1 ctx (TmTApp (TmTAbs x t11) tyT2) = tytermSubstTop tyT2 t11
+eval1 ctx (TmTApp t1 tyT2) = let t1' = eval1 ctx t1 in TmTApp t1' tyT2
+eval1 ctx (TmUnpack tyX x (TmPack tyT11 v12 tyS) t2) =
+    if isVal ctx v12 then
+        tytermSubstTop tyT11 (termSubstTop (termShift 1 v12) t2)
+    else
+        let t1' = eval1 ctx (TmPack tyT11 v12 tyS) in TmUnpack tyX x t1' t2
+eval1 ctx (TmUnpack tyX x t1 t2) = let t1' = eval1 ctx t1 in TmUnpack tyX x t1' t2
+eval1 ctx (TmPack tyT1 t2 tyT3) = let t2' = eval1 ctx t2 in TmPack tyT1 t2' tyT3
+eval1 _ t = t
+
+eval :: Context -> Term -> Term
+eval ctx t = let t' = eval1 ctx t in
+    if t' == t then t else eval ctx t'
+
+typeOf :: Context -> Term -> Type
+typeOf ctx t =
+    case t of
+        TmVar i _ -> getTypeFromContext ctx i
+        TmAbs x tyT1 t2 ->
+            let ctx' = addBinding ctx x (VarBind tyT1) in
+            let tyT2 = typeOf ctx' t2 in
+                TyArr tyT1 tyT2
+        TmApp t1 t2 ->
+            let tyT1 = typeOf ctx t1 in
+            let tyT2 = typeOf ctx t2 in
+                case tyT1 of
+                    TyArr tyT11 tyT12 -> if tyT2 == tyT11 then 
+                                            tyT12
+                                         else
+                                            error "Parameter type mismatch"
+                    _ -> error "Arrow type expected"
+        TmTAbs tyX t2 ->
+            let ctx = addBinding ctx tyX TyVarBind in
+            let tyT2 = typeOf ctx t2 in
+                TyAll tyX tyT2
+        TmTApp t1 tyT2 ->
+            let tyT1 = typeOf ctx t1 in
+                case tyT1 of
+                    TyAll _ tyT12 -> typeSubstTop tyT2 tyT12
+                    _ -> error "Universal type expected"
+        TmPack tyT1 t2 tyT ->
+            case tyT of
+                TySome tyY tyT2 ->
+                    let tyU = typeOf ctx t2 in
+                    let tyU' = typeSubstTop tyT1 tyT2 in
+                        if (==) tyU tyU' then tyT else error "Doesn't match declared type"
+                _ -> error "Existential type expected"
+        TmUnpack tyX x t1 t2 ->
+            let tyT1 = typeOf ctx t1 in
+                case tyT1 of
+                    TySome tyY tyT11 ->
+                        let ctx' = addBinding ctx tyX TyVarBind in
+                        let ctx'' = addBinding ctx' x (VarBind tyT11) in
+                        let tyT2 = typeOf ctx'' t2 in
+                        typeShift (-2) tyT2
+                    _ -> error "Existential type expected"
 
 main :: IO ()
 main = do
